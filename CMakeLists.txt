@@ -29,7 +29,7 @@ add_library(memkv SHARED
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(memkv PRIVATE ENABLE_LOG) # 在 Debug 模式下定义 ENABLE_LOG
 endif()
-target_link_libraries(memkv block_malloc)
+target_link_libraries(memkv box_malloc block_malloc)
 
 add_subdirectory(test)
 
