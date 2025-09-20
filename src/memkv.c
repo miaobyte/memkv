@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "memkv.h"
+#include <memkv/memkv.h>
 #include <box_malloc/box_malloc.h>
 #include "logutil.h"
 #include <block_malloc/block_malloc.h>

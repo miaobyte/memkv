@@ -11,16 +11,19 @@ include_directories(src)
 include(FetchContent)
 FetchContent_Declare(
     block_malloc
-    GIT_REPOSITORY git@github.com:miaobyte/block_malloc.git
+    GIT_REPOSITORY https://github.com/miaobyte/block_malloc.git
     GIT_TAG main
 )
 FetchContent_MakeAvailable(block_malloc)
 FetchContent_Declare(
     box_malloc
-    GIT_REPOSITORY git@github.com:miaobyte/box_malloc.git
+    GIT_REPOSITORY https://github.com/miaobyte/box_malloc.git
     GIT_TAG main
 )
 FetchContent_MakeAvailable(box_malloc)
+
+include_directories(${box_malloc_SOURCE_DIR}/include)
+include_directories(${block_malloc_SOURCE_DIR}/include)
 
 # 添加源文件
 add_library(memkv SHARED

@@ -1,7 +1,8 @@
 #define POOL_SIZE (1 << 20) // 1MB内存池
 #include <string.h>
 #include <stdint.h>
-#include "memkv.h"
+
+#include <memkv/memkv.h>
 #include "logutil.h"
 
 int main(){

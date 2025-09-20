@@ -2,7 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "memkv.h"
+
+#include <memkv/memkv.h>
 #include "logutil.h"
 
 int main() {
