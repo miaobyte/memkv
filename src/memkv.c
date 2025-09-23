@@ -67,18 +67,18 @@ int memkv_init(void *pool_data,const size_t pool_len,  const uint16_t chartype,u
     if (!pool_data||pool_len<=0)
     {
         LOG("[ERROR] pool is NULL");
-        return -1;
+        return MEMKV_ERROR_INVALID_ARG;
     }
     if (pool_len <= sizeof(memkv_meta_t))
     {
         LOG("[ERROR] pool size %lu is too small", pool_len);
-        return -1;
+        return MEMKV_ERROR_OUTOFMEMORY;
     }
     memkv_meta_t *meta = (memkv_meta_t *)pool_data;
     if (memcmp(meta->magic, MEMKV_MAGIC, sizeof(meta->magic)) == 0)
     {
         LOG("[INFO] memkv already initialized");
-        return -1; // 已经初始化
+        return MEMKV_ERROR_ALREADY_INIT; // 已经初始化
     }
     memcpy(meta->magic, MEMKV_MAGIC, sizeof(meta->magic));
     meta->pool_size = pool_len;
@@ -135,13 +135,13 @@ int memkv_init(void *pool_data,const size_t pool_len,  const uint16_t chartype,u
         return -1;
     }
     LOG("[INFO] memkv root node initialized");
-    return 0;
+    return MEMKV_SUCCESS;
 }
 
-void memkv_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len)
+int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len)
 {
     if (!pool_data  || !key_data || key_len < 0)
-        return;
+        return MEMKV_ERROR_INVALID_ARG;
 
     memkv_meta_t *meta = (memkv_meta_t *)pool_data;
 
@@ -162,7 +162,7 @@ void memkv_set(void *pool_data, const void *key_data, size_t key_len, const void
             if (new_block_id<0)
             {
                 LOG("[ERROR] failed to allocate new block for char %c at depth %zu", char_index, i);
-                return;
+                return MEMKV_ERROR_OUTOFMEMORY;
             }
             key_node_t *parent_node = cur_node; 
             parent_node->child_key_blocks[char_index] = new_block_id;
@@ -189,6 +189,7 @@ void memkv_set(void *pool_data, const void *key_data, size_t key_len, const void
     cur_node->has_key = true;
     memcpy(value_start + newobj_offset, value_data, value_len); // 复制新值
     LOG("[INFO] key set successfully");
+    return MEMKV_SUCCESS;
 }
  
  
@@ -223,7 +224,7 @@ void* memkv_get(void *pool_data, const void *key_data, size_t key_len)
     // 到达最后一个节点，检查是否有值
     if (!cur_node->has_key)
     {
-        LOG("[INFO] key found but has no value");
+        LOG("[INFO] key path found but no key set");
         return NULL;
     }
 
@@ -236,12 +237,12 @@ void* memkv_get(void *pool_data, const void *key_data, size_t key_len)
     LOG("[INFO] key found");
     return result;
 }
-void memkv_del(void* pool_data, const void* key_data, size_t key_len)
+int memkv_del(void* pool_data, const void* key_data, size_t key_len)
 {
     if (!pool_data || !key_data || key_len <= 0)
     {
         LOG("[ERROR] invalid arguments to memkv_del");
-        return;
+        return MEMKV_ERROR_INVALID_ARG;
     }
 
     memkv_meta_t *meta = (memkv_meta_t *)pool_data;
@@ -258,7 +259,7 @@ void memkv_del(void* pool_data, const void* key_data, size_t key_len)
         {
             // 未找到子节点，表示键不存在
             LOG("[INFO] key not found at character %zu, nothing to delete", i);
-            return;
+            return MEMKV_ERROR_KEY_NOT_FOUND;
         }
         // 跳转到子节点
         cur_node = key_start + blockdata_offset(&meta->keys_blocks, childi);
@@ -268,7 +269,7 @@ void memkv_del(void* pool_data, const void* key_data, size_t key_len)
     if (!cur_node->has_key)
     {
         LOG("[INFO] key found but has no value, nothing to delete");
-        return;
+        return MEMKV_ERROR_KEY_NOT_FOUND;
     }
 
     // 释放与键关联的值
@@ -280,6 +281,7 @@ void memkv_del(void* pool_data, const void* key_data, size_t key_len)
     cur_node->box_offset = 0;
     
     LOG("[INFO] key and associated value deleted successfully");
+    return MEMKV_SUCCESS;
 }
 
 static void memkv_traverse_dfs(memkv_meta_t *meta, key_node_t *node, char *key_buffer, size_t depth, void (*func)(const void* key_data, size_t key_len))
@@ -364,5 +366,34 @@ void memkv_keys(void* pool_data, const void* prefix_data,size_t prefix_len, void
     {
         // 如果没有前缀，从根节点开始遍历
         memkv_traverse_dfs(meta, root_node, key_buffer, depth, func);
+    }
+}
+
+const char* memkv_strerror(memkv_error_t err)
+{
+    switch (err) {
+        case MEMKV_SUCCESS:
+            return "Success";
+        case MEMKV_ERROR_INVALID_ARG:
+            return "Invalid argument";
+        case MEMKV_ERROR_POOL_NULL:
+            return "Memory pool is null";
+        case MEMKV_ERROR_OUTOFMEMORY:
+            return "Memory pool out of memory";
+        case MEMKV_ERROR_ALREADY_INIT:
+            return "Already initialized";
+        case MEMKV_ERROR_ALLOC_FAILED:
+            return "Allocation failed";
+        case MEMKV_ERROR_KEY_NOT_FOUND:
+            return "Key not found";
+        case MEMKV_ERROR_KEY_EXISTS:
+            return "Key already exists";
+        case MEMKV_ERROR_PREFIX_TOO_LONG:
+            return "Prefix is too long";
+        case MEMKV_ERROR_CHAR_OUT_OF_RANGE:
+            return "Character index out of range";
+        case MEMKV_ERROR_UNKNOWN:
+        default:
+            return "Unknown error";
     }
 }

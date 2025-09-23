@@ -43,10 +43,27 @@ box区：
 #include <stddef.h>
 #include <stdint.h>
 
+typedef enum {
+    MEMKV_SUCCESS = 0,           // 操作成功
+    MEMKV_ERROR_INVALID_ARG = -1, // 无效参数
+    MEMKV_ERROR_POOL_NULL = -2,   // 内存池为空
+    MEMKV_ERROR_OUTOFMEMORY = -3, // 内存池过小
+    MEMKV_ERROR_ALREADY_INIT = -4,   // 已初始化
+    MEMKV_ERROR_ALLOC_FAILED = -5,   // 分配失败
+    MEMKV_ERROR_KEY_NOT_FOUND = -6,  // 键不存在
+    MEMKV_ERROR_KEY_EXISTS = -7,     // 键已存在（可选，用于set操作）
+    MEMKV_ERROR_PREFIX_TOO_LONG = -8, // 前缀过长
+    MEMKV_ERROR_CHAR_OUT_OF_RANGE = -9, // 字符索引超出范围
+    MEMKV_ERROR_UNKNOWN = -10         // 未知错误
+} memkv_error_t;
+
 int memkv_init(void *pool_data, size_t pool_len, uint16_t chartype, uint8_t keymem, uint8_t valueptrmem, uint8_t valuemem);
-void memkv_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len);
+int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len);
 void* memkv_get(void *pool_data, const void *key_data, size_t key_len);
-void memkv_del(void *pool_data, const void *key_data, size_t key_len);
+int memkv_del(void *pool_data, const void *key_data, size_t key_len);
 void memkv_keys(void *pool_data, const void *prefix_data, size_t prefix_len, void (*func)(const void *key_data, size_t key_len));
+
+// 返回错误码对应的字符串描述
+const char* memkv_strerror(memkv_error_t err);
 
 #endif // MEMKV_H
