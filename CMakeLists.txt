@@ -28,6 +28,7 @@ include_directories(${block_malloc_SOURCE_DIR}/include)
 # 添加源文件
 add_library(memkv SHARED
     src/memkv.c
+    src/miaobyte.c
 )
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(memkv PRIVATE ENABLE_LOG) # 在 Debug 模式下定义 ENABLE_LOG
