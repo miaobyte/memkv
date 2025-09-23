@@ -185,6 +185,11 @@ int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void 
         box_free(valueptr_start, cur_node->box_offset); // 释放旧的对象
     }
     uint64_t newobj_offset= box_alloc(valueptr_start, value_len); // 分配新的对象
+    if (newobj_offset == (uint64_t)-1)
+    {
+        LOG("[ERROR] box_alloc failed for value of size %zu", value_len);
+        return MEMKV_ERROR_OUTOFMEMORY;
+    }
     cur_node->box_offset = newobj_offset; // 更新实际的对象偏移
     cur_node->has_key = true;
     memcpy(value_start + newobj_offset, value_data, value_len); // 复制新值
