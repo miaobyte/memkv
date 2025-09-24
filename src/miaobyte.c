@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include <memkv/miaobyte.h>
 #include <memkv/memkv.h>
 
