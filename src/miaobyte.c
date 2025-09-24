@@ -40,22 +40,28 @@ static const char decode_map[48] = {
     '@', '#', '_', '-', '/', '[', ']', ':', ',', '.',
 };
 
-void miaobyte_encode(const char *str, uint8_t *bytes, size_t len) {
+int miaobyte_encode(const char *str, uint8_t *bytes, size_t len) {
     for (size_t i = 0; i < len; i++) {
-        bytes[i] = encode_map[(uint8_t)str[i]];
+        uint8_t m = encode_map[(uint8_t)str[i]];
+        if (m == 0xFF) {
+            return MEMKV_ERROR_CHAR_OUT_OF_RANGE;
+        }
+        bytes[i] = m;
     }
+    return 0;
 }
 
-void miaobyte_decode(const uint8_t *bytes, char *str, size_t len) {
+int miaobyte_decode(const uint8_t *bytes, char *str, size_t len) {
     for (size_t i = 0; i < len; i++) {
         uint8_t b = bytes[i];
         if (b < 48) {
             str[i] = decode_map[b];
         } else {
-            str[i] = '?';
+            return MEMKV_ERROR_CHAR_OUT_OF_RANGE;
         }
     }
     str[len] = '\0';
+    return 0;
 }
 
 int miaobyte_init(void *pool_data,const size_t pool_len,uint8_t keymem,uint8_t valueptrmem,uint8_t valuemem){
@@ -65,39 +71,43 @@ int miaobyte_set(void *pool_data, const void *key_data, size_t key_len, const vo
     uint8_t *encoded_key = malloc(key_len);
     if (!encoded_key)
         return MEMKV_ERROR_OUTOFMEMORY;
-    miaobyte_encode((const char*)key_data,encoded_key,key_len);
-    int ret= memkv_set(pool_data,encoded_key,key_len,value_data,value_len);
+    int r = miaobyte_encode((const char*)key_data, encoded_key, key_len);
+    if (r != 0) { free(encoded_key); return r; }
+    int ret = memkv_set(pool_data, encoded_key, key_len, value_data, value_len);
     free(encoded_key);
     return ret;
 }
 
 void* miaobyte_get(void *pool_data, const void *key_data, size_t key_len){
     uint8_t *encoded_key = malloc(key_len);
-    if (!encoded_key)
-        return NULL;
-    miaobyte_encode((const char*)key_data,encoded_key,key_len);
-    void* ret= memkv_get(pool_data,encoded_key,key_len);
+    if (!encoded_key) return NULL;
+    int r = miaobyte_encode((const char*)key_data, encoded_key, key_len);
+    if (r != 0) {   
+        free(encoded_key); return NULL; 
+    }
+    void* ret = memkv_get(pool_data, encoded_key, key_len);
     free(encoded_key);
     return ret;
 }
+
 int miaobyte_del(void *pool_data, const void *key_data, size_t key_len){
     uint8_t *encoded_key = malloc(key_len);
-    if (!encoded_key)
-        return MEMKV_ERROR_OUTOFMEMORY;
-    miaobyte_encode((const char*)key_data,encoded_key,key_len);
-    int ret= memkv_del(pool_data,encoded_key,key_len);
+    if (!encoded_key) return MEMKV_ERROR_OUTOFMEMORY;
+    int r = miaobyte_encode((const char*)key_data, encoded_key, key_len);
+    if (r != 0) { free(encoded_key); return r; }
+    int ret = memkv_del(pool_data, encoded_key, key_len);
     free(encoded_key);
     return ret;
 }
-void miaobyte_keys(void *pool_data, const void *prefix_data, size_t prefix_len, void (*func)(const void *key_data, size_t key_len)){
-    uint8_t *encoded_prefix =NULL;
-    if(prefix_len>0){
-        encoded_prefix= malloc(prefix_len);
-        if (!encoded_prefix)
-        return;
-    }
 
-    miaobyte_encode((const char*)prefix_data,encoded_prefix,prefix_len);
-    memkv_keys(pool_data,encoded_prefix,prefix_len,func);
+void miaobyte_keys(void *pool_data, const void *prefix_data, size_t prefix_len, void (*func)(const void *key_data, size_t key_len)){
+    uint8_t *encoded_prefix = NULL;
+    if (prefix_len > 0) {
+        encoded_prefix = malloc(prefix_len);
+        if (!encoded_prefix) return;
+        int r = miaobyte_encode((const char*)prefix_data, encoded_prefix, prefix_len);
+        if (r != 0) { free(encoded_prefix); return; }
+    }
+    memkv_keys(pool_data, encoded_prefix, prefix_len, func);
     free(encoded_prefix);
 }

@@ -82,8 +82,11 @@ static void print_value(void *valptr, val_type_t t) {
 static void keys_cb(const void *key_data, size_t key_len) {
     char buf[1024];
     if (key_len >= sizeof(buf)) return;
-    miaobyte_decode((const uint8_t*)key_data, buf, key_len);
-    buf[key_len] = '\0';
+    int r = miaobyte_decode((const uint8_t*)key_data, buf, key_len);
+    if (r != 0) {
+        printf("<invalid-key>\n");
+        return;
+    }
     printf("%s\n", buf);
 }
 
@@ -91,29 +94,21 @@ static void check_meta(void *pool, size_t pool_size) {
     if (!pool) return;
     memkv_meta_t *meta = (memkv_meta_t *)pool;
 
-    printf("=== memkv meta check ===\n");
-    printf("magic:\t'%.*s'\n", 6, meta->magic);  // 使用 %.*s 打印固定长度字符串
-    printf("char_type:\t%u\n", (unsigned)meta->char_type);
-    printf("pool_size (meta):\t%lu\n", (unsigned long)meta->pool_size);
-    printf("file_mapped_size:\t%lu\n", (unsigned long)pool_size);
-    printf("key_offset:\t%lu\n", (unsigned long)meta->key_offset);
-    printf("valueptr_offset:\t%lu\n", (unsigned long)meta->valueptr_offset);
-    printf("value_offset:\t%lu\n", (unsigned long)meta->value_offset);
+    const int width = 50;
+    for (int i = 0; i < width; ++i) putchar('-');
+    putchar('\n');
+    printf("memkv meta:\n");
+    printf(" %-22s : '%.*s'\n", "magic", 6, meta->magic);
+    printf(" %-22s : %u\n", "char_type", (unsigned)meta->char_type);
+    printf(" %-22s : %lu\n", "pool_size (meta)", (unsigned long)meta->pool_size);
+    printf(" %-22s : %lu\n", "file_mapped_size", (unsigned long)pool_size);
+    printf(" %-22s : %lu\n", "key_offset", (unsigned long)meta->key_offset);
+    printf(" %-22s : %lu\n", "valueptr_offset", (unsigned long)meta->valueptr_offset);
+    printf(" %-22s : %lu\n", "value_offset", (unsigned long)meta->value_offset);
 
-    // basic validation
-    if (memcmp(meta->magic, MEMKV_MAGIC, 6) != 0) {
-        fprintf(stderr, "[WARN] magic mismatch: not a memkv pool or not initialized\n");
-    }
-    if (meta->key_offset >= pool_size || meta->valueptr_offset >= pool_size || meta->value_offset >= pool_size) {
-        fprintf(stderr, "[WARN] offsets outside mapped range\n");
-    }
-    if (meta->pool_size != 0 && meta->pool_size != pool_size) {
-        fprintf(stderr, "[WARN] meta.pool_size (%lu) differs from file size (%lu)\n",
-                (unsigned long)meta->pool_size, (unsigned long)pool_size);
-    }
-    printf("========================\n");
+    for (int i = 0; i < width; ++i) putchar('-');
+    putchar('\n');
 }
-
 int main(int argc, char **argv) {
     if (argc < 3) { usage(argv[0]); return 1; }
     const char *pool_path = argv[1];

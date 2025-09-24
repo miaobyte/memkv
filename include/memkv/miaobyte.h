@@ -12,7 +12,7 @@ void* miaobyte_get(void *pool_data, const void *key_data, size_t key_len);
 int miaobyte_del(void *pool_data, const void *key_data, size_t key_len);
 void miaobyte_keys(void *pool_data, const void *prefix_data, size_t prefix_len, void (*func)(const void *key_data, size_t key_len));
 
-void miaobyte_encode(const char *str, uint8_t *bytes, size_t len) ;
-void miaobyte_decode(const uint8_t *bytes, char *str, size_t len) ;
+int miaobyte_encode(const char *str, uint8_t *bytes, size_t len) ;
+int miaobyte_decode(const uint8_t *bytes, char *str, size_t len) ;
 
 #endif // MIAOBYTE_H

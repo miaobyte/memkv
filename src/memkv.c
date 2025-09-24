@@ -286,7 +286,7 @@ static void memkv_traverse_dfs(memkv_meta_t *meta, key_node_t *node, char *key_b
         if (child_id >= 0)
         {
             void *key_start = (uint8_t *)meta + meta->key_offset;
-            key_node_t *child_node = (key_node_t *)(key_start + blockdata_offset(&meta->keys_blocks, child_id));
+            key_node_t *child_node = key_start + blockdata_offset(&meta->keys_blocks, child_id);
             key_buffer[depth] = (char)i; // 将当前字符加入键
             memkv_traverse_dfs(meta, child_node, key_buffer, depth + 1, func);
         }
@@ -303,7 +303,7 @@ void memkv_keys(void* pool_data, const void* prefix_data,size_t prefix_len, void
 
     memkv_meta_t *meta = (memkv_meta_t *)pool_data;
     void *key_start = pool_data + meta->key_offset;
-    key_node_t *root_node = (key_node_t *)(key_start + blockdata_offset(&meta->keys_blocks, 0));
+    key_node_t *root_node =  key_start + blockdata_offset(&meta->keys_blocks, 0);
     if (!root_node)
     {
         LOG("[ERROR] root node is NULL");
