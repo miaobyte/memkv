@@ -90,9 +90,13 @@ int miaobyte_del(void *pool_data, const void *key_data, size_t key_len){
     return ret;
 }
 void miaobyte_keys(void *pool_data, const void *prefix_data, size_t prefix_len, void (*func)(const void *key_data, size_t key_len)){
-    uint8_t *encoded_prefix = malloc(prefix_len);
-    if (!encoded_prefix)
+    uint8_t *encoded_prefix =NULL;
+    if(prefix_len>0){
+        encoded_prefix= malloc(prefix_len);
+        if (!encoded_prefix)
         return;
+    }
+
     miaobyte_encode((const char*)prefix_data,encoded_prefix,prefix_len);
     memkv_keys(pool_data,encoded_prefix,prefix_len,func);
     free(encoded_prefix);

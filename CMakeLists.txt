@@ -35,8 +35,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 target_link_libraries(memkv box_malloc block_malloc)
 
+add_executable(miaobytecli src/miaobytecli.c)
+target_link_libraries(miaobytecli memkv)
+
 add_subdirectory(test)
 
 # 安装目标和头文件
 install(TARGETS memkv DESTINATION lib/memkv)
 install(DIRECTORY include/ DESTINATION include/memkv)
+install(TARGETS miaobytecli DESTINATION bin)
