@@ -31,6 +31,7 @@ static void usage(const char *prog) {
         "pool_path may be a tmpfs/shm file (e.g. /dev/shm/kvpool) or a regular file on disk.\n"
         "If the file does not exist, create it and set its size using: truncate -s <size> <pool_path>\n"
         "Commands:\n"
+        "  init <size>[K|M|G] [ratios]   create new pool file (ratios default 3:1:2)\n"
         "  set  <key> <value>   [type]    store value\n"
         "  get  <key>           [type]    fetch value\n"
         "  del  <key>                     delete key\n"
@@ -41,6 +42,19 @@ static void usage(const char *prog) {
         "  1) For a new pool file you can create and set size: truncate -s 4M /dev/shm/kvpool\n"
         "  2) Strings are stored with terminating NUL.\n"
         , prog);
+}
+static size_t parse_size_arg(const char *s) {
+    if (!s || !*s) return 0;
+    char *end;
+    unsigned long long base = strtoull(s, &end, 10);
+    if (end && *end) {
+        if (*end=='K' || *end=='k') base <<= 10;
+        else if (*end=='M' || *end=='m') base <<= 20;
+        else if (*end=='G' || *end=='g') base <<= 30;
+        else return 0;
+        if (end[1] != '\0') return 0;
+    }
+    return (size_t)base;
 }
 
 static val_type_t parse_type_flag(const char *arg) {
@@ -90,7 +104,7 @@ static void keys_cb(const void *key_data, size_t key_len) {
     printf("%s\n", buf);
 }
 
-static void check_meta(void *pool, size_t pool_size) {
+static void check_meta(void *pool, size_t filesize) {
     if (!pool) return;
     memkv_meta_t *meta = (memkv_meta_t *)pool;
 
@@ -100,8 +114,11 @@ static void check_meta(void *pool, size_t pool_size) {
     printf("memkv meta:\n");
     printf(" %-22s : '%.*s'\n", "magic", 6, meta->magic);
     printf(" %-22s : %u\n", "char_type", (unsigned)meta->char_type);
-    printf(" %-22s : %lu\n", "pool_size (meta)", (unsigned long)meta->pool_size);
-    printf(" %-22s : %lu\n", "file_mapped_size", (unsigned long)pool_size);
+    printf(" %-22s : %lu\n", "pool_size", (unsigned long)meta->pool_size);
+    if (meta->pool_size != filesize) {
+        printf(" [WARNING] pool_size in meta (%lu) does not match actual file size (%lu)\n",
+               (unsigned long)meta->pool_size, (unsigned long)filesize);
+    }
     printf(" %-22s : %lu\n", "key_offset", (unsigned long)meta->key_offset);
     printf(" %-22s : %lu\n", "valueptr_offset", (unsigned long)meta->valueptr_offset);
     printf(" %-22s : %lu\n", "value_offset", (unsigned long)meta->value_offset);
@@ -113,7 +130,46 @@ int main(int argc, char **argv) {
     if (argc < 3) { usage(argv[0]); return 1; }
     const char *pool_path = argv[1];
     const char *cmd = argv[2];
+    if (strcmp(cmd, "init") == 0) {
+        if (argc < 4) { fprintf(stderr, "init requires size\n"); return 1; }
+        if (access(pool_path, F_OK) == 0) {
+            fprintf(stderr, "file exists: %s\n", pool_path);
+            return 1;
+        }
+        size_t sz = parse_size_arg(argv[3]);
+        if (sz == 0) { fprintf(stderr, "invalid size: %s\n", argv[3]); return 1; }
 
+        uint8_t keymem=3, valueptrmem=1, valuemem=2;
+        if (argc >=5) {
+            unsigned a,b,c;
+            if (sscanf(argv[4], "%u:%u:%u", &a,&b,&c) == 3 && a&&b&&c) {
+                keymem=(uint8_t)a; valueptrmem=(uint8_t)b; valuemem=(uint8_t)c;
+            } else {
+                fprintf(stderr, "invalid ratios (expect a:b:c), using default 3:1:2\n");
+            }
+        }
+
+        int fd = open(pool_path, O_CREAT|O_EXCL|O_RDWR, 0644);
+        if (fd < 0) { perror("open"); return 1; }
+        if (ftruncate(fd, (off_t)sz) != 0) { perror("ftruncate"); close(fd); unlink(pool_path); return 1; }
+
+        void *pool = mmap(NULL, sz, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+        if (pool == MAP_FAILED) { perror("mmap"); close(fd); unlink(pool_path); return 1; }
+
+        int r = miaobyte_init(pool, sz, keymem, valueptrmem, valuemem);
+        if (r != MEMKV_SUCCESS) {
+            fprintf(stderr, "init failed: %s\n", memkv_strerror(r));
+            munmap(pool, sz);
+            close(fd);
+            unlink(pool_path);
+            return 1;
+        }
+        printf("initialized pool '%s' size=%zu ratios=%u:%u:%u char_type=48\n",
+               pool_path, sz, keymem, valueptrmem, valuemem);
+        munmap(pool, sz);
+        close(fd);
+        return 0;
+    }
     /* open existing pool file */
     int fd = open(pool_path, O_RDWR);
     if (fd < 0) { perror("open"); return 1; }

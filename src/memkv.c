@@ -267,7 +267,7 @@ int memkv_del(void* pool_data, const void* key_data, size_t key_len)
     LOG("[INFO] key and associated value deleted successfully");
     return MEMKV_SUCCESS;
 }
-
+#define KEY_BUFFER_MAX 1024
 static void memkv_traverse_dfs(memkv_meta_t *meta, key_node_t *node, char *key_buffer, size_t depth, void (*func)(const void* key_data, size_t key_len))
 {
     if (!node)
@@ -287,6 +287,12 @@ static void memkv_traverse_dfs(memkv_meta_t *meta, key_node_t *node, char *key_b
         {
             void *key_start = (uint8_t *)meta + meta->key_offset;
             key_node_t *child_node = key_start + blockdata_offset(&meta->keys_blocks, child_id);
+            
+            if (depth + 1 >= KEY_BUFFER_MAX) {
+                LOG("[ERROR] would overflow key buffer at depth %zu, skipping child %zu", depth+1, i);
+                continue;
+            }
+            
             key_buffer[depth] = (char)i; // 将当前字符加入键
             memkv_traverse_dfs(meta, child_node, key_buffer, depth + 1, func);
         }
@@ -310,7 +316,7 @@ void memkv_keys(void* pool_data, const void* prefix_data,size_t prefix_len, void
         return;
     }
 
-    char key_buffer[1024]; // 假设最大键长度为 1024
+    char key_buffer[KEY_BUFFER_MAX];
     size_t depth = 0;
 
     // 将前缀写入 key_buffer
