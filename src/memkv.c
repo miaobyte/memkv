@@ -96,8 +96,12 @@ int memkv_init(void *pool_data,const size_t pool_len,  const uint16_t chartype,u
     size_t keynodesize = keynode_size(meta);
     blocks_init(&(meta->keys_blocks), keys_size, keynodesize);
     void *keys_start = pool_data + meta->key_offset;
-    blocks_alloc(&meta->keys_blocks,keys_start); // 分配根节点
-    void *root_key =keys_start+ blockdata_offset(&meta->keys_blocks, 0);
+    int64_t root_block_id = blocks_alloc(&meta->keys_blocks, keys_start); // 分配根节点
+    if (root_block_id < 0) {
+        LOG("[ERROR] failed to allocate root node");
+        return MEMKV_ERROR_OUTOFMEMORY;
+    }
+    void *root_key = keys_start + blockdata_offset(&meta->keys_blocks, root_block_id);
     if (!root_key)
     {
         LOG("[ERROR] failed to allocate root node");
@@ -132,7 +136,10 @@ int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void 
     {
         // 当前字符的索引
         uint8_t char_index = *(uint8_t *)(key_data + i);
-        
+        if (char_index >= meta->char_type) {
+            LOG("[ERROR] character index out of range in set: %u (depth %zu)", char_index, i);
+            return MEMKV_ERROR_CHAR_OUT_OF_RANGE;
+        }
         int32_t childi = cur_node->child_key_blocks[char_index];
         if (childi < 0)
         {
@@ -143,10 +150,10 @@ int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void 
                 LOG("[ERROR] failed to allocate new block for char %c at depth %zu", char_index, i);
                 return MEMKV_ERROR_OUTOFMEMORY;
             }
-            key_node_t *parent_node = cur_node; 
-            parent_node->child_key_blocks[char_index] = new_block_id;
-            cur_node = key_start + blockdata_offset(&meta->keys_blocks, new_block_id);
-            keynode_init(meta, cur_node); // 初始化新节点             // 更新当前节点的子节点指针
+            cur_node->child_key_blocks[char_index] = (int32_t)new_block_id;
+            key_node_t *new_node = key_start + blockdata_offset(&meta->keys_blocks,new_block_id);
+            keynode_init(meta, new_node);
+            cur_node = new_node;
         }
         else
         {
@@ -194,6 +201,10 @@ void* memkv_get(void *pool_data, const void *key_data, size_t key_len)
     for (size_t i = 0; i < key_len; i++)
     {
         uint8_t char_index = ((uint8_t*)key_data)[i];
+        if (char_index >= meta->char_type) {
+            LOG("[ERROR] character index out of range in get: %u (depth %zu)", char_index, i);
+            return NULL;
+        }
         int32_t childi = cur_node->child_key_blocks[char_index];
         if (childi < 0)
         {
@@ -238,6 +249,10 @@ int memkv_del(void* pool_data, const void* key_data, size_t key_len)
     for (size_t i = 0; i < key_len; i++)
     {
         uint8_t char_index = ((uint8_t*)key_data)[i];
+        if (char_index >= meta->char_type) {
+            LOG("[ERROR] character index out of range in get: %u (depth %zu)", char_index, i);
+            return NULL;
+        }
         int32_t childi = cur_node->child_key_blocks[char_index];
         if (childi < 0)
         {
@@ -335,6 +350,10 @@ void memkv_keys(void* pool_data, const void* prefix_data,size_t prefix_len, void
         for (size_t i = 0; i < prefix_len; i++)
         {
             uint8_t char_index = ((uint8_t*)prefix_data)[i];
+            if (char_index >= meta->char_type) {
+                LOG("[ERROR] character index out of range in get: %u (depth %zu)", char_index, i);
+                return;
+            }
             if (char_index >= meta->char_type)
             {
                 LOG("[ERROR] character index out of range: %u", char_index);
