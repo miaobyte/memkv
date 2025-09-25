@@ -251,7 +251,7 @@ int memkv_del(void* pool_data, const void* key_data, size_t key_len)
         uint8_t char_index = ((uint8_t*)key_data)[i];
         if (char_index >= meta->char_type) {
             LOG("[ERROR] character index out of range in get: %u (depth %zu)", char_index, i);
-            return NULL;
+            return MEMKV_ERROR_CHAR_OUT_OF_RANGE;
         }
         int32_t childi = cur_node->child_key_blocks[char_index];
         if (childi < 0)
