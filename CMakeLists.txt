@@ -33,10 +33,6 @@ else()
     )
     FetchContent_MakeAvailable(boxmalloc)
 endif()
-message(STATUS "boxmalloc_SOURCE_DIR: ${boxmalloc_SOURCE_DIR}")
-include_directories(${boxmalloc_SOURCE_DIR})
-message(STATUS "blockmalloc_SOURCE_DIR: ${blockmalloc_SOURCE_DIR}")
-include_directories(${blockmalloc_SOURCE_DIR})
 
 # 添加源文件
 add_library(memkv SHARED
