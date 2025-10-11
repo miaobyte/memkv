@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(memkv VERSION 0.1.0)   # 设置版本，dpkg-buildpackage 会使用 debian/changelog 版本
 
 set(CMAKE_C_STANDARD 11)
+include(GNUInstallDirs)
 
 # 添加头文件路径
 include_directories(include)
@@ -47,23 +48,21 @@ target_link_libraries(memkv boxmalloc blockmalloc)
 add_executable(miaobytecli src/miaobytecli.c)
 target_link_libraries(miaobytecli memkv)
 
-
-
 add_subdirectory(test)
 
-include(GNUInstallDirs)
 
 # 安装目标和头文件（使用 GNUInstallDirs 变量，便于打包）
 install(TARGETS memkv
     EXPORT memkvTargets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_CURRENT_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_CURRENT_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_CURRENT_INSTALL_BINDIR}
 )
 
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(TARGETS miaobytecli DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+
 # Generate CMake config package files for downstream consumers
-include(cmake/PackageMemkv.cmake)
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/packagex.cmake")
