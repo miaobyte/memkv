@@ -1,0 +1,3 @@
+usr/include/memkv/*
+usr/lib/x86_64-linux-gnu/cmake/memkv-*/**
+usr/lib/x86_64-linux-gnu/libmemkv.so

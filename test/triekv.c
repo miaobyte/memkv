@@ -3,7 +3,7 @@
 
 #include <memkv/memkv.h>
 #include "logutil.h"
-#include <block_malloc/block_malloc.h>
+#include <blockmalloc/blockmalloc.h>
 
 
 #define POOL_SIZE (1 << 20) // 1MB内存池

@@ -1,0 +1,11 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: memkv
+Source: https://github.com/miaobyte/memkv
+
+Files: *
+Copyright: 2024-2025 Your Name
+License: MIT
+ .
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction...

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(memkv)
+project(memkv VERSION 0.1.0)   # 设置版本，dpkg-buildpackage 会使用 debian/changelog 版本
 
 set(CMAKE_C_STANDARD 11)
 
@@ -7,23 +7,36 @@ set(CMAKE_C_STANDARD 11)
 include_directories(include)
 include_directories(src)
 
-# 使用 FetchContent 下载和引入 block_malloc
 include(FetchContent)
-FetchContent_Declare(
-    block_malloc
-    GIT_REPOSITORY https://github.com/miaobyte/block_malloc.git
-    GIT_TAG main
-)
-FetchContent_MakeAvailable(block_malloc)
-FetchContent_Declare(
-    box_malloc
-    GIT_REPOSITORY https://github.com/miaobyte/box_malloc.git
-    GIT_TAG main
-)
-FetchContent_MakeAvailable(box_malloc)
+find_package(blockmalloc CONFIG QUIET)
+if(blockmalloc_FOUND)
+    message(STATUS "Found blockmalloc package")
+else()
+    message(STATUS "blockmalloc package not found, fetching from GitHub")
+    FetchContent_Declare(
+        blockmalloc
+        GIT_REPOSITORY https://github.com/miaobyte/blockmalloc.git
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(blockmalloc)
+endif()
 
-include_directories(${box_malloc_SOURCE_DIR}/include)
-include_directories(${block_malloc_SOURCE_DIR}/include)
+find_package(boxmalloc CONFIG QUIET)
+if(boxmalloc_FOUND)
+    message(STATUS "Found boxmalloc package")
+else()
+    message(STATUS "boxmalloc package not found, fetching from GitHub")
+    FetchContent_Declare(
+        boxmalloc
+        GIT_REPOSITORY https://github.com/miaobyte/boxmalloc.git
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(boxmalloc)
+endif()
+message(STATUS "boxmalloc_SOURCE_DIR: ${boxmalloc_SOURCE_DIR}")
+include_directories(${boxmalloc_SOURCE_DIR})
+message(STATUS "blockmalloc_SOURCE_DIR: ${blockmalloc_SOURCE_DIR}")
+include_directories(${blockmalloc_SOURCE_DIR})
 
 # 添加源文件
 add_library(memkv SHARED
@@ -33,14 +46,28 @@ add_library(memkv SHARED
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(memkv PRIVATE ENABLE_LOG) # 在 Debug 模式下定义 ENABLE_LOG
 endif()
-target_link_libraries(memkv box_malloc block_malloc)
+target_link_libraries(memkv boxmalloc blockmalloc)
 
 add_executable(miaobytecli src/miaobytecli.c)
 target_link_libraries(miaobytecli memkv)
 
+
+
 add_subdirectory(test)
 
-# 安装目标和头文件
-install(TARGETS memkv DESTINATION lib/memkv)
-install(DIRECTORY include/ DESTINATION include/memkv)
-install(TARGETS miaobytecli DESTINATION bin)
+include(GNUInstallDirs)
+
+# 安装目标和头文件（使用 GNUInstallDirs 变量，便于打包）
+install(TARGETS memkv
+    EXPORT memkvTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(TARGETS miaobytecli DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# Generate CMake config package files for downstream consumers
+include(cmake/PackageMemkv.cmake)

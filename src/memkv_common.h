@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <box_malloc/box_malloc.h>
-#include <block_malloc/block_malloc.h>
+#include <boxmalloc/boxmalloc.h>
+#include <blockmalloc/blockmalloc.h>
 
 
 typedef struct
