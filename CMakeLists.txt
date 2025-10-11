@@ -43,7 +43,7 @@ add_library(memkv SHARED
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(memkv PRIVATE ENABLE_LOG) # 在 Debug 模式下定义 ENABLE_LOG
 endif()
-target_link_libraries(memkv boxmalloc blockmalloc)
+target_link_libraries(memkv PRIVATE  boxmalloc blockmalloc)
 
 add_executable(miaobytecli src/miaobytecli.c)
 target_link_libraries(miaobytecli memkv)
