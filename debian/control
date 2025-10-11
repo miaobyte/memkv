@@ -2,18 +2,18 @@ Source: memkv
 Section: utils
 Priority: optional
 Maintainer: miaobyte <peng.li24@nio.com>
-Build-Depends: debhelper (>= 12), cmake, build-essential,libblockmalloc2-dev,libboxmalloc2-dev
+Build-Depends: debhelper (>= 12), cmake, build-essential,libblockmalloc1-dev,libboxmalloc1-dev
 Standards-Version: 4.5.0
 Homepage: https://github.com/miaobyte/memkv
 
 Package: libmemkv
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},libblockmalloc2,libboxmalloc2
+Depends: ${shlibs:Depends}, ${misc:Depends},libblockmalloc1,libboxmalloc1
 Description: memkv in-memory key-value store
  A small in-memory key-value store with miaobyte key encoding and box/block allocators.
 
 Package: libmemkv-dev
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libmemkv (= ${binary:Version}), libblockmalloc2-dev, libboxmalloc2-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}, libmemkv (= ${binary:Version}), libblockmalloc1-dev, libboxmalloc1-dev
 Description: memkv development files
  Header files and static libraries for memkv.
