@@ -40,10 +40,24 @@ add_library(memkv SHARED
     src/memkv.c
     src/miaobyte.c
 )
+
+set_target_properties(boxmalloc PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION 1
+)
+
+# include paths: public for users, private for build
+target_include_directories(boxmalloc
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(memkv PRIVATE ENABLE_LOG) # 在 Debug 模式下定义 ENABLE_LOG
 endif()
-target_link_libraries(memkv PRIVATE  boxmalloc blockmalloc)
+target_link_libraries(memkv PUBLIC boxmalloc blockmalloc)
 
 add_executable(miaobytecli src/miaobytecli.c)
 target_link_libraries(miaobytecli memkv)
