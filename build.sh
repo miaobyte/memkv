@@ -1,12 +1,14 @@
-#!/bin/sh
-set -e
+clear
+mkdir -p build
+rm -rf build/*
 
-# Ensure maintainer identity is set (dpkg-buildpackage requires it)
-if [ -z "${DEBFULLNAME:-}" ] || [ -z "${DEBEMAIL:-}" ]; then
-  echo "Please set DEBFULLNAME and DEBEMAIL environment variables before building (e.g. export DEBFULLNAME=\"Your Name\"; export DEBEMAIL=\"you@example.com\")"
-  exit 1
-fi
+# 配置 CMake 为 Debug 模式
+cd build
 
-# Build Debian binary package using dpkg-buildpackage
-# This will invoke debian/rules which uses debhelper (dh) + cmake buildsystem.
-dpkg-buildpackage -us -uc -b
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# 构建
+make
+
+# 安装
+# make install
