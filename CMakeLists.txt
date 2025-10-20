@@ -41,26 +41,49 @@ add_library(memkv SHARED
     src/miaobyte.c
 )
 
-set_target_properties(boxmalloc PROPERTIES
+# 统一解析依赖目标名（兼容 find_package 与 FetchContent）
+if(TARGET boxmalloc::boxmalloc)
+    set(_boxmalloc_target boxmalloc::boxmalloc)
+elseif(TARGET boxmalloc)
+    add_library(boxmalloc::boxmalloc ALIAS boxmalloc)
+    set(_boxmalloc_target boxmalloc::boxmalloc)
+else()
+    message(FATAL_ERROR "boxmalloc target not found")
+endif()
+
+if(TARGET blockmalloc::blockmalloc)
+    set(_blockmalloc_target blockmalloc::blockmalloc)
+elseif(TARGET blockmalloc)
+    add_library(blockmalloc::blockmalloc ALIAS blockmalloc)
+    set(_blockmalloc_target blockmalloc::blockmalloc)
+else()
+    message(FATAL_ERROR "blockmalloc target not found")
+endif()
+
+# 给 memkv 设置版本/SOVERSION，而不是 boxmalloc
+set_target_properties(memkv PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
 )
 
-# include paths: public for users, private for build
-target_include_directories(boxmalloc
+# include 路径也应设置到 memkv
+target_include_directories(memkv
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
 )
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(memkv PRIVATE ENABLE_LOG) # 在 Debug 模式下定义 ENABLE_LOG
-endif()
-target_link_libraries(memkv PUBLIC boxmalloc blockmalloc)
 
-add_executable(miaobytecli src/miaobytecli.c)
-target_link_libraries(miaobytecli memkv)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(memkv PRIVATE ENABLE_LOG)
+endif()
+
+# 正确链接命名空间目标
+target_link_libraries(memkv PUBLIC ${_boxmalloc_target} ${_blockmalloc_target})
+
+add_executable(miaobyte src/miaobytecli.c)
+target_link_libraries(miaobyte memkv)
 
 add_subdirectory(test)
 
@@ -75,7 +98,7 @@ install(TARGETS memkv
 
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-install(TARGETS miaobytecli DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS miaobyte DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 
 # Generate CMake config package files for downstream consumers

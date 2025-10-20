@@ -1,2 +1,3 @@
 usr/lib/x86_64-linux-gnu/libmemkv.so
-usr/bin/miaobytecli
+usr/lib/x86_64-linux-gnu/libmemkv.so.*
+usr/bin/miaobyte
