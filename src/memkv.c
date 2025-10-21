@@ -120,11 +120,9 @@ int memkv_init(void *pool_data,const size_t pool_len,  const uint16_t chartype,u
     LOG("[INFO] memkv root node initialized");
     return MEMKV_SUCCESS;
 }
-
-int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len)
-{
-    if (!pool_data  || !key_data || key_len < 0)
-        return MEMKV_ERROR_INVALID_ARG;
+void* memkv_malloc(void *pool_data, const void *key_data, size_t key_len,size_t value_len){
+        if (!pool_data  || !key_data || key_len < 0)
+        return NULL;
 
     memkv_meta_t *meta = (memkv_meta_t *)pool_data;
 
@@ -138,7 +136,7 @@ int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void 
         uint8_t char_index = *(uint8_t *)(key_data + i);
         if (char_index >= meta->char_type) {
             LOG("[ERROR] character index out of range in set: %u (depth %zu)", char_index, i);
-            return MEMKV_ERROR_CHAR_OUT_OF_RANGE;
+            return NULL;
         }
         int32_t childi = cur_node->child_key_blocks[char_index];
         if (childi < 0)
@@ -148,7 +146,7 @@ int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void 
             if (new_block_id<0)
             {
                 LOG("[ERROR] failed to allocate new block for char %c at depth %zu", char_index, i);
-                return MEMKV_ERROR_OUTOFMEMORY;
+                return NULL;
             }
             cur_node->child_key_blocks[char_index] = (int32_t)new_block_id;
             key_node_t *new_node = key_start + blockdata_offset(&meta->keys_blocks,new_block_id);
@@ -174,12 +172,31 @@ int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void 
     if (newobj_offset == (uint64_t)-1)
     {
         LOG("[ERROR] box_alloc failed for value of size %zu", value_len);
-        return MEMKV_ERROR_OUTOFMEMORY;
+        return NULL;
     }
     cur_node->box_offset = newobj_offset; // 更新实际的对象偏移
     cur_node->has_key = true;
-    memcpy(value_start + newobj_offset, value_data, value_len); // 复制新值
-    LOG("[INFO] key set successfully,objoffset %lu", newobj_offset);
+
+    uint64_t value_offset = cur_node->box_offset;
+    
+    void* result= value_start + value_offset;
+    return result;
+}
+
+int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len)
+{
+    void* objptr= memkv_malloc( pool_data,  key_data, key_len, value_len);
+    if (!objptr)
+    {
+        LOG("[ERROR] memkv_malloc failed in set");
+        return MEMKV_ERROR_ALLOC_FAILED;
+    }
+    memcpy(objptr, value_data, value_len); // 复制新值
+
+    memkv_meta_t *meta = (memkv_meta_t *)pool_data;
+    void *value_start = pool_data + meta->value_offset;
+    uint64_t value_offset = objptr-value_start;
+    LOG("[INFO] key set successfully,objoffset %lu", value_offset);
     return MEMKV_SUCCESS;
 }
  

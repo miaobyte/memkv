@@ -7,6 +7,7 @@
 #include <memkv/memkv.h>
 
 int miaobyte_init(void *pool_data,const size_t pool_len,uint8_t keymem,uint8_t valueptrmem,uint8_t valuemem);
+void* miaobyte_malloc(void *pool_data, const void *key_data, size_t key_len,size_t value_len);
 int miaobyte_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len);
 void* miaobyte_get(void *pool_data, const void *key_data, size_t key_len);
 int miaobyte_del(void *pool_data, const void *key_data, size_t key_len);

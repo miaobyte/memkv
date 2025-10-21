@@ -59,6 +59,7 @@ typedef enum {
 
 int memkv_init(void *pool_data, size_t pool_len, uint16_t chartype, uint8_t keymem, uint8_t valueptrmem, uint8_t valuemem);
 int memkv_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len);
+void* memkv_malloc(void *pool_data, const void *key_data, size_t key_len,size_t value_len);
 void* memkv_get(void *pool_data, const void *key_data, size_t key_len);
 int memkv_del(void *pool_data, const void *key_data, size_t key_len);
 void memkv_keys(void *pool_data, const void *prefix_data, size_t prefix_len, void (*func)(const void *key_data, size_t key_len));

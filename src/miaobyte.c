@@ -67,6 +67,19 @@ int miaobyte_decode(const uint8_t *bytes, char *str, size_t len) {
 int miaobyte_init(void *pool_data,const size_t pool_len,uint8_t keymem,uint8_t valueptrmem,uint8_t valuemem){
     return memkv_init(pool_data,pool_len,48,keymem,valueptrmem,valuemem);
 }
+void* miaobyte_malloc(void *pool_data, const void *key_data, size_t key_len,size_t value_len){
+    uint8_t *encoded_key = malloc(key_len);
+    if (!encoded_key)
+        return NULL;
+    int r = miaobyte_encode((const char*)key_data, encoded_key, key_len);
+    if (r != 0) { 
+        free(encoded_key); 
+        return NULL;
+    }
+    void* ret = memkv_malloc(pool_data, encoded_key, key_len, value_len);
+    free(encoded_key);
+    return ret;
+}
 int miaobyte_set(void *pool_data, const void *key_data, size_t key_len, const void *value_data, size_t value_len){
     uint8_t *encoded_key = malloc(key_len);
     if (!encoded_key)
